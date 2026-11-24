@@ -12,13 +12,16 @@ html,body{height:100%;margin:0;overflow:hidden}
 body{background:radial-gradient(ellipse at 50% 55%,#07303d,#02080e 70%);color:#bff9ff;font-family:"Cormorant Garamond",Georgia,serif;touch-action:none}
 canvas{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
 canvas:active{cursor:grabbing}
+#rain{cursor:default;opacity:.55;pointer-events:none}
+h1,p{z-index:2}
 h1{position:fixed;top:0;left:0;right:0;margin:0;text-align:center;font-weight:500;font-size:clamp(1.5rem,4vw,2.2rem);letter-spacing:.04em;padding-top:calc(env(safe-area-inset-top,0px) + 20px);pointer-events:none}
 p{position:fixed;bottom:0;left:0;right:0;margin:0;text-align:center;color:#4fb8c8;font-size:1.05rem;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px);pointer-events:none}
 </style>
 </head>
 <body>
-<h1>Bisous Mon beubeuuuhhhhhhhh</h1>
+<h1>Bisous Mon beubeuuuuhhhh</h1>
 <p>Glissez pour faire tourner ton bouquet</p>
+<canvas id="rain"></canvas>
 <canvas id="c" aria-label="Bouquet de roses rouges en binaire"></canvas>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
@@ -138,9 +141,27 @@ function resize(){
 }
 addEventListener('resize',resize);resize();
 
+// pluie de 0 et de 1 en arrière-plan
+const rc=document.getElementById('rain'),rx=rc.getContext('2d'),fs=18;
+let cols=[],rl=0,still=false;
+function rainSize(){const d=Math.min(devicePixelRatio,2);rc.width=innerWidth*d;rc.height=innerHeight*d;rx.setTransform(d,0,0,d,0,0);cols=Array.from({length:Math.ceil(innerWidth/fs)},()=>Math.random()*innerHeight/fs);still=false;}
+rainSize();addEventListener('resize',rainSize);
+function rain(now){
+  rx.font=fs+'px monospace';
+  if(reduce){if(still)return;still=true;rx.fillStyle='rgba(60,220,255,.35)';for(let x=0;x<innerWidth;x+=fs)for(let y=fs;y<innerHeight;y+=fs)if(Math.random()<.5)rx.fillText(Math.random()<.5?'0':'1',x,y);return;}
+  if(now-rl<55)return;rl=now;
+  rx.globalCompositeOperation='destination-out';rx.fillStyle='rgba(0,0,0,.1)';rx.fillRect(0,0,innerWidth,innerHeight);
+  rx.globalCompositeOperation='source-over';
+  for(let i=0;i<cols.length;i++){
+    const y=cols[i]*fs,x=i*fs;
+    rx.fillStyle='rgba(60,220,255,.7)';rx.fillText(Math.random()<.5?'0':'1',x,y-fs);
+    rx.fillStyle='#d8fcff';rx.fillText(Math.random()<.5?'0':'1',x,y);
+    if(y>innerHeight&&Math.random()>.975)cols[i]=0;cols[i]++;
+  }
+}
 const clock=new THREE.Clock();
 (function loop(){
-  const dt=clock.getDelta(),t=clock.elapsedTime;
+  const dt=clock.getDelta(),t=clock.elapsedTime;rain(performance.now());
   if(!drag)rot+=vel*dt;
   bouquet.rotation.y=rot;bouquet.rotation.x=tilt;U.uT.value=t;
   heart.rotation.y=reduce?0:t*.8;heart.scale.setScalar(.5*(1+.1*Math.pow(Math.max(0,Math.sin(t*3.2)),6)));heart.position.y=2.8+(reduce?0:Math.sin(t*1.2)*.06);
