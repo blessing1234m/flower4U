@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Loviyouuu babe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:radial-gradient(ellipse at 50% 55%,#07303d,#02080e 70%);color:#bff9ff;font-family:"Cormorant Garamond",Georgia,serif;touch-action:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:grab}
+canvas:active{cursor:grabbing}
+h1{position:fixed;top:0;left:0;right:0;margin:0;text-align:center;font-weight:500;font-size:clamp(1.5rem,4vw,2.2rem);letter-spacing:.04em;padding-top:calc(env(safe-area-inset-top,0px) + 20px);pointer-events:none}
+p{position:fixed;bottom:0;left:0;right:0;margin:0;text-align:center;color:#4fb8c8;font-size:1.05rem;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px);pointer-events:none}
+</style>
+</head>
+<body>
+<h1>Bisous Mon beubeuuuhhhhhhhh</h1>
+<p>Glissez pour faire tourner ton bouquet</p>
+<canvas id="c" aria-label="Bouquet de roses rouges en binaire"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const rnd=(s=>()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296})(11);
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(38,1,.1,100);
+
+const U={uT:{value:0}};
+function holo(tint,use,side){return new THREE.ShaderMaterial({uniforms:{uT:U.uT,uTint:{value:new THREE.Color(tint)},uUse:{value:use},uA:{value:1}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,side:side||THREE.DoubleSide,
+ vertexShader:'attribute vec3 aCol;varying vec3 vN;varying vec3 vW;varying vec3 vC;void main(){vC=aCol;vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;vN=normalize(normalMatrix*normal);gl_Position=projectionMatrix*viewMatrix*w;}',
+ fragmentShader:'uniform float uT;uniform vec3 uTint;uniform float uUse;uniform float uA;varying vec3 vN;varying vec3 vW;varying vec3 vC;void main(){vec3 n=normalize(vN);if(!gl_FrontFacing)n=-n;vec3 v=normalize(cameraPosition-vW);float f=pow(1.-abs(dot(n,v)),2.);vec3 b=uUse>.5?vC:uTint;vec3 h=mix(vec3(.1,.85,1.),b,.88);float scan=.65+.35*sin(vW.y*60.-uT*3.);float fl=.93+.07*sin(uT*40.);float a=(.24+.5*f)*scan*fl;gl_FragColor=vec4(h*(.8+f*1.5),a*uA);}'});}
+const mat=holo('#ffffff',1);mat.uniforms.uA.value=.14;
+
+function petalGeo(len,wid,cup,c1,c2){
+  const g=new THREE.PlaneGeometry(1,1,6,10),p=g.attributes.position,col=[],c=new THREE.Color();
+  for(let i=0;i<p.count;i++){
+    const t=p.getY(i)+.5,u=p.getX(i);
+    const w=.15+.85*Math.sin(Math.PI*Math.pow(t,.75));
+    p.setXYZ(i,u*wid*w,t*len,cup*len*t*t*.6+u*u*wid*1.3*(.3+t));
+    c.copy(c2).lerp(c1,Math.pow(t,.9));col.push(c.r,c.g,c.b);
+  }
+  g.setAttribute('aCol',new THREE.Float32BufferAttribute(col,3));
+  g.computeVertexNormals();return g;
+}
+// rose rouge : pétales en coupe, serrés
+const RT={layers:4,n:5,dn:1,len:.48,wid:.4,open:.6,tip:'#ff3550',base:'#a00c22',cup:.5};
+function rose(o){
+  const g=new THREE.Group(),tip=new THREE.Color(o.tip),base=new THREE.Color(o.base);
+  for(let l=0;l<o.layers;l++){
+    const f=l/(o.layers-1),n=o.n+l*o.dn;
+    const geo=petalGeo(o.len*(1-.5*f),o.wid*(1-.3*f),o.cup,tip.clone().lerp(base,f*.45),base);
+    const tilt=o.open+(.25-o.open)*f;
+    for(let k=0;k<n;k++){
+      const pv=new THREE.Group();pv.rotation.y=k/n*Math.PI*2+l*.8+rnd()*.15;
+      const m=new THREE.Mesh(geo,mat);m.rotation.x=tilt+(rnd()-.5)*.14;m.position.y=.015*l;
+      pv.add(m);g.add(pv);
+    }
+  }
+  return g;
+}
+
+const bouquet=new THREE.Group();scene.add(bouquet);
+const up=new THREE.Vector3(0,1,0),bottom=new THREE.Vector3(0,-2,0),SC=[],N=21;
+for(let i=0;i<N;i++){
+  const a=i*2.399,r=1.4*Math.sqrt((i+.5)/N),px=Math.cos(a)*r,pz=Math.sin(a)*r,py=-.1+Math.sqrt(2.56-r*r);
+  const top=new THREE.Vector3(px,py,pz),nrm=new THREE.Vector3(px,py+.1,pz).normalize();
+  SC.push(new THREE.QuadraticBezierCurve3(bottom,new THREE.Vector3(px*.3,-.4,pz*.3),top.clone().addScaledVector(nrm,-.12)));
+  const fl=rose(RT);fl.quaternion.setFromUnitVectors(up,nrm);fl.rotateY(rnd()*6);
+  fl.position.copy(top);fl.scale.setScalar(1+rnd()*.12);bouquet.add(fl);
+}
+bouquet.position.y=-.1;bouquet.updateMatrixWorld(true);
+
+// tout en 0 et 1
+const bp=[],bc=[],bs=[],inv=new THREE.Matrix4().copy(bouquet.matrixWorld).invert(),mm=new THREE.Matrix4(),tv=new THREE.Vector3(),cc=new THREE.Color();
+const PAPER=new THREE.Color('#566470'),YEL=new THREE.Color('#ffd51a'),RED=new THREE.Color('#ff2a4d'),GREEN=new THREE.Color('#3fe07a');
+const addPt=(x,y,z,c)=>{bp.push(x,y,z);bc.push(c.r,c.g,c.b);bs.push(.8+rnd()*.4);};
+function addCurve(cv,sp,c,j){const n=Math.max(2,Math.round(cv.getLength()/sp));for(let i=0;i<=n;i++){cv.getPoint(i/n,tv);addPt(tv.x+(rnd()-.5)*j,tv.y+(rnd()-.5)*j,tv.z+(rnd()-.5)*j,c);}}
+SC.forEach(c=>addCurve(c,.08,GREEN,.03));
+bouquet.traverse(o=>{if(!o.isMesh||o.material!==mat)return;mm.multiplyMatrices(inv,o.matrixWorld);const pa=o.geometry.attributes.position,ca=o.geometry.attributes.aCol;for(let i=0;i<pa.count;i++){tv.fromBufferAttribute(pa,i).applyMatrix4(mm);cc.setRGB(ca.getX(i),ca.getY(i),ca.getZ(i));addPt(tv.x,tv.y,tv.z,cc);}});
+// papier noir à liseré jaune
+function sheetPt(u,v,W,L,tilt,ang,y0){
+  const x=u*W*(.3+.7*v),y=v*L,z=v*v*.45-u*u*W*.35*v+Math.sin(u*6+v*3+ang)*.05*v;
+  const c=Math.cos(tilt),s=Math.sin(tilt),y2=y*c-z*s,z2=y*s+z*c,ca=Math.cos(ang),sa=Math.sin(ang);
+  return [x*ca+z2*sa,y2+y0,-x*sa+z2*ca];
+}
+function addSheet(W,L,tilt,ang,y0){
+  for(let i=0;i<=13;i++)for(let j=0;j<=12;j++){const p=sheetPt(j/12-.5,.08+.92*i/13,W,L,tilt,ang,y0);addPt(p[0],p[1],p[2],PAPER);}
+  for(let t=0;t<=1;t+=.025){
+    const v=.08+.92*t;
+    [[-.5,v],[.5,v],[t-.5,1]].forEach(e=>{const p=sheetPt(e[0],e[1],W,L,tilt,ang,y0);addPt(p[0],p[1],p[2],YEL);});
+  }
+}
+for(let k=0;k<7;k++)addSheet(1.55,2.5,.55,k/7*6.283+.2,-1.25);
+for(let k=0;k<7;k++)addSheet(1.7,2.7,.85,(k+.5)/7*6.283+.2,-1.25);
+for(let i=0;i<=8;i++){const y=-2.25+i*.14,rad=.22+i*.045;for(let j=0;j<16;j++){const a=j/16*6.283+i*.4;addPt(Math.cos(a)*rad,y,Math.sin(a)*rad,PAPER);}}
+// ruban rouge satiné et nœud
+for(let r=0;r<3;r++)for(let j=0;j<64;j++){const a=j/64*6.283;addPt(Math.cos(a)*.5,-1.4+(r-1)*.045,Math.sin(a)*.5,RED);}
+const loop=(sx)=>{for(let j=0;j<40;j++){const a=j/40*6.283,x=Math.cos(a)*.3,y=Math.sin(a)*.17,k=-.35*sx,xr=x*Math.cos(k)-y*Math.sin(k),yr=x*Math.sin(k)+y*Math.cos(k);addPt(sx*.3+xr,-1.32+yr,.56+(rnd()-.5)*.04,RED);}};
+loop(-1);loop(1);
+addCurve(new THREE.QuadraticBezierCurve3(new THREE.Vector3(0,-1.4,.56),new THREE.Vector3(-.1,-1.8,.6),new THREE.Vector3(-.35,-2.2,.6)),.045,RED,.02);
+addCurve(new THREE.QuadraticBezierCurve3(new THREE.Vector3(0,-1.4,.56),new THREE.Vector3(.1,-1.8,.6),new THREE.Vector3(.3,-2.15,.6)),.045,RED,.02);
+
+const tc=document.createElement('canvas');tc.width=128;tc.height=64;const tx=tc.getContext('2d');tx.fillStyle='#fff';tx.font='bold 54px monospace';tx.textAlign='center';tx.textBaseline='middle';tx.fillText('0',32,34);tx.fillText('1',96,34);
+const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.Float32BufferAttribute(bp,3));bg.setAttribute('aC',new THREE.Float32BufferAttribute(bc,3));bg.setAttribute('aS',new THREE.Float32BufferAttribute(bs,1));
+const pm=new THREE.ShaderMaterial({uniforms:{uPx:{value:600},uT:U.uT,uTex:{value:new THREE.CanvasTexture(tc)}},transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+vertexShader:`attribute vec3 aC;attribute float aS;uniform float uPx;uniform float uT;varying vec3 vC;varying float vD;varying float vF;void main(){vC=aC;float h=fract(sin(dot(position,vec3(12.9,78.2,37.7)))*43758.5);float k=floor(uT*1.4+h*10.);vD=fract(sin(k*7.3+h*100.)*43758.5)>.5?1.:0.;vF=.65+.35*sin(position.y*4.-uT*2.);vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=aS*uPx*.085/-mv.z;}`,
+fragmentShader:`uniform sampler2D uTex;varying vec3 vC;varying float vD;varying float vF;void main(){vec2 uv=vec2((gl_PointCoord.x+vD)*.5,1.-gl_PointCoord.y);float a=texture2D(uTex,uv).a;if(a<.05)discard;gl_FragColor=vec4(mix(vC,vec3(1.),.25)*vF*1.4,a*.95);}`});
+const bpts=new THREE.Points(bg,pm);bpts.frustumCulled=false;bouquet.add(bpts);
+
+// socle holographique + cœur
+const add=c=>new THREE.MeshBasicMaterial({color:c.c,transparent:true,opacity:c.o,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});
+const rings=[],ringG=new THREE.RingGeometry(1.45,1.5,64);
+for(let i=0;i<3;i++){const m=new THREE.Mesh(ringG,add({c:0x5ff3ff,o:.4}));m.rotation.x=-Math.PI/2;m.position.y=-2.45;scene.add(m);rings.push(m);}
+const baseD=new THREE.Mesh(new THREE.CircleGeometry(1.5,64),add({c:0x1fbfe0,o:.12}));baseD.rotation.x=-Math.PI/2;baseD.position.y=-2.45;scene.add(baseD);
+const hs=new THREE.Shape();hs.moveTo(0,-.5);hs.bezierCurveTo(-.2,-.3,-.55,-.05,-.55,.2);hs.bezierCurveTo(-.55,.5,-.2,.6,0,.35);hs.bezierCurveTo(.2,.6,.55,.5,.55,.2);hs.bezierCurveTo(.55,-.05,.2,-.3,0,-.5);
+const hg=new THREE.ExtrudeGeometry(hs,{depth:.2,bevelEnabled:true,bevelSize:.05,bevelThickness:.05,bevelSegments:3});hg.center();
+const heart=new THREE.Mesh(hg,holo('#ff3d7f',0));heart.position.y=2.8;scene.add(heart);
+
+const NP=90,pp=new Float32Array(NP*3);
+for(let i=0;i<NP;i++){pp.set([(rnd()-.5)*6,(rnd()-.5)*6,(rnd()-.5)*6],i*3);}
+const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(pp,3));
+scene.add(new THREE.Points(pg,new THREE.PointsMaterial({size:.05,color:0x7ff3ff,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false})));
+
+let rot=.5,tilt=.12,vel=reduce?0:.25,drag=false,lx=0,ly=0;
+canvas.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;ly=e.clientY;canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;rot+=(e.clientX-lx)*.008;tilt=Math.max(-.3,Math.min(.55,tilt+(e.clientY-ly)*.004));lx=e.clientX;ly=e.clientY;});
+const end=()=>{drag=false};canvas.addEventListener('pointerup',end);canvas.addEventListener('pointercancel',end);
+
+function resize(){
+  const w=innerWidth,h=innerHeight,asp=w/h;
+  renderer.setSize(w,h,false);pm.uniforms.uPx.value=h*renderer.getPixelRatio()/(2*Math.tan(19*Math.PI/180));camera.aspect=asp;
+  camera.position.set(0,1.1,8.4*Math.max(1,1/asp));camera.lookAt(0,.4,0);camera.updateProjectionMatrix();
+}
+addEventListener('resize',resize);resize();
+
+const clock=new THREE.Clock();
+(function loop(){
+  const dt=clock.getDelta(),t=clock.elapsedTime;
+  if(!drag)rot+=vel*dt;
+  bouquet.rotation.y=rot;bouquet.rotation.x=tilt;U.uT.value=t;
+  heart.rotation.y=reduce?0:t*.8;heart.scale.setScalar(.5*(1+.1*Math.pow(Math.max(0,Math.sin(t*3.2)),6)));heart.position.y=2.8+(reduce?0:Math.sin(t*1.2)*.06);
+  rings.forEach((r,i)=>{const p=(t*.25+i/3)%1,s=1+p*.35;r.scale.set(s,s,1);r.material.opacity=.5*(1-p);});
+  if(!reduce){
+    bouquet.rotation.z=Math.sin(t*.7)*.02;
+    const a=pg.attributes.position;
+    for(let i=0;i<NP;i++){let y=a.getY(i)+dt*.12*(1+i%3*.4);if(y>3)y=-3;a.setY(i,y);}
+    a.needsUpdate=true;
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
